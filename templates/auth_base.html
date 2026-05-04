@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}LucidFinance{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Sign in to your personal finance dashboard{% endblock %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        violet: {
+                            50:'#f1eeff',100:'#e6e1ff',200:'#d2cbff',300:'#b7acff',
+                            400:'#9c8cff',500:'#8470ff',600:'#755ff8',700:'#5d47de',
+                            800:'#4634b1',900:'#2f227c',950:'#1c1357',
+                        }
+                    },
+                    fontFamily: { sans: ['Inter','ui-sans-serif','system-ui'] },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans bg-gray-950 text-gray-100 antialiased min-h-screen flex flex-col">
+    <div class="flex flex-col flex-1 items-center justify-center p-4">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="w-full max-w-sm mb-4 space-y-2">
+            {% for category, message in messages %}
+            <div class="flex items-start gap-3 px-4 py-3 rounded-xl text-sm border
+                {% if category == 'danger' %}bg-red-500/10 text-red-400 border-red-500/20
+                {% elif category == 'success' %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20
+                {% elif category == 'warning' %}bg-amber-500/10 text-amber-400 border-amber-500/20
+                {% else %}bg-sky-500/10 text-sky-400 border-sky-500/20{% endif %}">
+                <i class="bx shrink-0 text-lg mt-0.5
+                    {% if category == 'danger' %}bx-error-circle
+                    {% elif category == 'success' %}bx-check-circle
+                    {% elif category == 'warning' %}bx-error
+                    {% else %}bx-info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="w-full max-w-sm bg-gray-800 rounded-2xl border border-gray-700/60 shadow-xl overflow-hidden">
+            <div class="flex flex-col items-center gap-3 px-8 pt-8 pb-6 border-b border-gray-700/60">
+                <div class="flex items-center gap-2">
+                    <svg class="fill-violet-500 shrink-0" xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 32 32">
+                        <path d="M31.956 14.8C31.372 6.92 25.08.628 17.2.044V5.76a9.04 9.04 0 0 0 9.04 9.04h5.716ZM14.8 26.24v5.716C6.92 31.372.63 25.08.044 17.2H5.76a9.04 9.04 0 0 1 9.04 9.04Zm11.44-9.04h5.716c-.584 7.88-6.876 14.172-14.756 14.756V26.24a9.04 9.04 0 0 1 9.04-9.04ZM.044 14.8C.63 6.92 6.92.628 14.8.044V5.76a9.04 9.04 0 0 1-9.04 9.04H.044Z"/>
+                    </svg>
+                    <span class="text-white font-bold text-lg">LucidFinance</span>
+                </div>
+                <p class="text-xs text-gray-400">{% block card_subtitle %}Welcome back{% endblock %}</p>
+            </div>
+            <div class="px-8 py-6">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+
+        <p class="mt-6 text-xs text-gray-500">{% block footer_text %}{% endblock %}</p>
+    </div>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
