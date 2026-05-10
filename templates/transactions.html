@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+{% block title %}Transactions - LucidFinance{% endblock %}
+{% block header_title %}Transactions{% endblock %}
+{% block header_subtitle %}Browse, filter, and manage your financial transactions{% endblock %}
+
+{% block content %}
+<div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-4 mb-4 shadow-card">
+    <form method="GET" action="{{ url_for('transactions.view_transactions') }}" class="flex flex-wrap gap-3 items-end">
+        <!-- Search -->
+        <div class="flex-1 min-w-48">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Search</label>
+            <div class="relative">
+                <i class="bx bx-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                <input type="text" name="search" value="{{ request.args.get('search', '') }}"
+                    placeholder="Description or category…" class="block w-full pl-9 pr-3 py-2 bg-gray-700/60 border border-gray-600/80 rounded-lg
+                              text-sm text-gray-200 placeholder-gray-500
+                              focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-transparent">
+            </div>
+        </div>
+
+        <!-- Category -->
+        <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Category</label>
+            <select name="category" class="bg-gray-700/60 border border-gray-600/80 text-gray-200 text-sm rounded-lg px-3 py-2
+                           focus:outline-none focus:ring-1 focus:ring-violet-500">
+                <option value="" {% if not request.args.get('category') %}selected{% endif %}>All Categories</option>
+                {% for cat in ['Salary','Groceries','Transport','Entertainment','Bills','Other'] %}
+                <option value="{{ cat }}" {% if request.args.get('category')==cat %}selected{% endif %}>{{ cat }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Type -->
+        <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Type</label>
+            <select name="type" class="bg-gray-700/60 border border-gray-600/80 text-gray-200 text-sm rounded-lg px-3 py-2
+                           focus:outline-none focus:ring-1 focus:ring-violet-500">
+                <option value="" {% if not request.args.get('type') %}selected{% endif %}>All Types</option>
+                <option value="income" {% if request.args.get('type')=='income' %}selected{% endif %}>Income</option>
+                <option value="expense" {% if request.args.get('type')=='expense' %}selected{% endif %}>Expense</option>
+            </select>
+        </div>
+
+        <button type="submit" class="flex items-center gap-1.5 bg-violet-500 hover:bg-violet-600 text-white font-semibold
+                       text-sm rounded-lg px-4 py-2 transition-colors">
+            <i class="bx bx-filter-alt text-base"></i> Filter
+        </button>
+
+        <a href="{{ url_for('transactions.view_transactions') }}" class="flex items-center gap-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold
+                   text-sm rounded-lg px-4 py-2 transition-colors">
+            <i class="bx bx-x text-base"></i> Clear
+        </a>
+    </form>
+</div>
+
+<div class="flex flex-wrap gap-3 mb-4">
+    <button id="openAddModal" class="flex items-center gap-2 bg-violet-500 hover:bg-violet-600 text-white font-semibold
+                   text-sm rounded-lg px-4 py-2 transition-colors">
+        <i class="bx bx-plus text-base"></i> Add Transaction
+    </button>
+    <button id="openUploadModal" class="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-300 font-semibold
+                   text-sm rounded-lg px-4 py-2 transition-colors">
+        <i class="bx bx-cloud-upload text-base"></i> Import CSV
+    </button>
+</div>
+
+<div class="bg-gray-800 border border-gray-700/60 rounded-2xl shadow-card overflow-hidden">
+    {% if transactions %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-700/60">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Description</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Category</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Type
+                    </th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Amount
+                    </th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700/40">
+                {% for tx in transactions %}
+                <tr class="hover:bg-gray-700/30 transition-colors">
+                    <td class="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">
+                        {{ tx.date.strftime('%d %b %Y') }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-gray-200 font-medium">{{ tx.description }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                            {% if tx.category == 'Groceries' %}bg-cyan-500/15 text-cyan-400
+                            {% elif tx.category == 'Transport' %}bg-amber-500/15 text-amber-400
+                            {% elif tx.category == 'Entertainment' %}bg-purple-500/15 text-purple-400
+                            {% elif tx.category == 'Bills' %}bg-rose-500/15 text-rose-400
+                            {% elif tx.category == 'Salary' %}bg-emerald-500/15 text-emerald-400
+                            {% else %}bg-gray-500/15 text-gray-400{% endif %}">
+                            {{ tx.category }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center gap-1 text-xs font-medium
+                            {% if tx.type == 'income' %}text-emerald-400{% else %}text-red-400{% endif %}">
+                            <i class="bx {% if tx.type == 'income' %}bx-plus{% else %}bx-minus{% endif %} text-sm"></i>
+                            {{ tx.type.capitalize() }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right font-semibold
+                        {% if tx.type == 'income' %}text-emerald-400{% else %}text-red-400{% endif %}">
+                        {% if tx.type == 'income' %}+{% else %}-{% endif %}{% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% elif base_currency == 'EUR' %}€{% else %}{{ base_currency or '' }}{% endif %}{{ "{:,.2f}".format(tx.amount) }}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <form action="{{ url_for('transactions.delete_transaction', tx_id=tx.id) }}" method="POST"
+                            onsubmit="return confirm('Delete this transaction?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit"
+                                class="text-gray-600 hover:text-red-400 transition-colors p-1 rounded">
+                                <i class="bx bx-trash text-base"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="w-14 h-14 rounded-2xl bg-gray-700/60 flex items-center justify-center mb-4">
+            <i class="bx bx-receipt text-3xl text-gray-500"></i>
+        </div>
+        <p class="text-sm font-medium text-gray-300">No transactions found</p>
+        <p class="text-xs text-gray-500 mt-1">Try adjusting your filters or add a new transaction</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if pagination and pagination.pages > 1 %}
+<div class="flex items-center justify-between mt-4">
+    <p class="text-xs text-gray-500">
+        Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }}-{{ [pagination.page * pagination.per_page,
+        pagination.total] | min }} of {{ pagination.total }} transactions
+    </p>
+    <div class="flex gap-1">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('transactions.view_transactions', page=pagination.prev_num, 
+            search=request.args.get('search',''), 
+            category=request.args.get('category',''), 
+            type=request.args.get('type','')) }}"
+            class="px-3 py-1.5 text-xs font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+            <i class="bx bx-chevron-left"></i>
+        </a>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+        {% if p %}
+        <a href="{{ url_for('transactions.view_transactions', page=p, 
+            search=request.args.get('search',''), 
+            category=request.args.get('category',''), 
+            type=request.args.get('type','')) }}"
+            class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors
+                      {% if p == pagination.page %}bg-violet-500 text-white{% else %}text-gray-300 bg-gray-700 hover:bg-gray-600{% endif %}">
+            {{ p }}
+        </a>
+        {% else %}
+        <span class="px-2 py-1.5 text-xs text-gray-600">…</span>
+        {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <a href="{{ url_for('transactions.view_transactions', page=pagination.next_num, 
+            search=request.args.get('search',''), 
+            category=request.args.get('category',''), 
+            type=request.args.get('type','')) }}"
+            class="px-3 py-1.5 text-xs font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+            <i class="bx bx-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Add Modal -->
+<div id="addTransactionModal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="absolute inset-0 bg-gray-950/70 backdrop-blur-sm" id="addModalBackdrop"></div>
+    <div
+        class="relative bg-gray-800 border border-gray-700/60 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-base font-semibold text-white">Add Transaction</h3>
+            <button id="closeAddModal" class="text-gray-400 hover:text-white transition-colors">
+                <i class="bx bx-x text-xl"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('transactions.add_transaction') }}" class="space-y-4">
+            {{ tx_form.hidden_tag() if tx_form else '' }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="space-y-1.5">
+                <label class="block text-sm font-medium text-gray-300">Date</label>
+                <input type="date" name="date" required
+                    class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block text-sm font-medium text-gray-300">Description</label>
+                <input type="text" name="description" required placeholder="e.g. Tesco Superstore"
+                    class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 placeholder-gray-500 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                    <label class="block text-sm font-medium text-gray-300">Amount</label>
+                    <input type="number" name="amount" step="0.01" min="0.01" required placeholder="0.00"
+                        class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 placeholder-gray-500 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="block text-sm font-medium text-gray-300">Type</label>
+                    <select name="type"
+                        class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block text-sm font-medium text-gray-300">Category</label>
+                <select name="category"
+                    class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+                    {% for cat in ['Groceries','Transport','Entertainment','Bills','Salary','Other'] %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label for="currency" class="block text-sm font-medium text-gray-300">
+                    Currency
+                </label>
+                {{ tx_form.currency(
+                    id="currency",
+                    class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 
+                           text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none 
+                           focus:ring-2 focus:ring-violet-500 focus:border-transparent 
+                           transition-colors duration-150"
+                ) }}
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="cancelAddBtn"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors">Cancel</button>
+                <button type="submit"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white bg-violet-500 hover:bg-violet-600 transition-colors">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- CSV Upload Modal -->
+<div id="uploadCSVModal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="absolute inset-0 bg-gray-950/70 backdrop-blur-sm" id="uploadModalBackdrop"></div>
+    <div
+        class="relative bg-gray-800 border border-gray-700/60 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-base font-semibold text-white">Import Bank Statement (CSV)</h3>
+            <button id="closeUploadModal" class="text-gray-400 hover:text-white transition-colors">
+                <i class="bx bx-x text-xl"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('transactions.upload_scan') }}" enctype="multipart/form-data"
+            class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="space-y-1.5">
+                <label class="block text-sm font-medium text-gray-300">Select CSV File</label>
+                <div class="flex flex-col items-center justify-center border-2 border-dashed border-gray-600/80 rounded-lg p-6 bg-gray-700/30 hover:bg-gray-700/50 transition-colors cursor-pointer"
+                    onclick="document.getElementById('csvFileInput').click()">
+                    <i class="bx bx-cloud-upload text-3xl text-gray-400 mb-2"></i>
+                    <span class="text-sm text-gray-300 font-medium" id="fileNameDisplay">Choose a file or drag &
+                        drop</span>
+                    <span class="text-xs text-gray-500 mt-1">Only .csv files are supported</span>
+                    <input type="file" id="csvFileInput" name="csv_file" accept=".csv" required class="hidden"
+                        onchange="updateFileName(this)">
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="cancelUploadBtn"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors">Cancel</button>
+                <button type="submit"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white bg-violet-500 hover:bg-violet-600 transition-colors">Upload</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const addModal = document.getElementById('addTransactionModal');
+    const openAddBtn = document.getElementById('openAddModal');
+    const closeAddBtn = document.getElementById('closeAddModal');
+    const cancelAddBtn = document.getElementById('cancelAddBtn');
+    const addBackdrop = document.getElementById('addModalBackdrop');
+
+    function openAddModal() { addModal.classList.remove('opacity-0', 'pointer-events-none'); }
+    function closeAddModal() { addModal.classList.add('opacity-0', 'pointer-events-none'); }
+
+    if (openAddBtn) openAddBtn.addEventListener('click', openAddModal);
+    if (closeAddBtn) closeAddBtn.addEventListener('click', closeAddModal);
+    if (cancelAddBtn) cancelAddBtn.addEventListener('click', closeAddModal);
+    if (addBackdrop) addBackdrop.addEventListener('click', closeAddModal);
+
+    const uploadModal = document.getElementById('uploadCSVModal');
+    const openUploadBtn = document.getElementById('openUploadModal');
+    const closeUploadModalBtn = document.getElementById('closeUploadModal');
+    const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+    const uploadBackdrop = document.getElementById('uploadModalBackdrop');
+
+    function openUploadModal() { uploadModal.classList.remove('opacity-0', 'pointer-events-none'); }
+    function closeUploadModal() { uploadModal.classList.add('opacity-0', 'pointer-events-none'); }
+
+    if (openUploadBtn) openUploadBtn.addEventListener('click', openUploadModal);
+    if (closeUploadModalBtn) closeUploadModalBtn.addEventListener('click', closeUploadModal);
+    if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', closeUploadModal);
+    if (uploadBackdrop) uploadBackdrop.addEventListener('click', closeUploadModal);
+
+    function updateFileName(input) {
+        const display = document.getElementById('fileNameDisplay');
+        if (input.files && input.files[0]) {
+            display.textContent = input.files[0].name;
+            display.classList.add('text-violet-400');
+        } else {
+            display.textContent = "Choose a file or drag & drop";
+            display.classList.remove('text-violet-400');
+        }
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeAddModal();
+            closeUploadModal();
+        }
+    });
+</script>
+{% endblock %}
