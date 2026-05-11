@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Map CSV Columns - LucidFinance{% endblock %}
+
+{% block header_title %}Map Statement Columns{% endblock %}
+{% block header_subtitle %}Match your CSV bank statement headers to the dashboard's transaction format{% endblock %}
+
+{% block content %}
+<div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-6 shadow-card max-w-2xl mx-auto">
+    <div class="flex items-center justify-between border-b border-gray-700/60 pb-4 mb-6">
+        <h2 class="text-base font-semibold text-white">Select Mapping Columns</h2>
+        <a href="{{ url_for('transactions.view_transactions') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-300 hover:text-white bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg transition-colors">
+            <i class="bx bx-arrow-back"></i> Back
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('transactions.upload_preview') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="csv_b64" value="{{ csv_b64 }}">
+
+        <div class="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 mb-6 text-sm text-gray-300">
+            <p class="font-semibold text-violet-400 flex items-center gap-2 mb-1">
+                <i class="bx bx-info-circle text-lg"></i> Smart Mapping Suggestion Active
+            </p>
+            <p class="text-xs text-gray-400">We have analyzed your statement's headers and pre-selected matching fields. Please review and adjust below if necessary. Mandatory fields are marked with an asterisk (*).</p>
+        </div>
+
+        <div class="space-y-6">
+            <div class="space-y-4">
+                <h3 class="text-xs font-semibold text-violet-400 uppercase tracking-widest border-b border-gray-700/60 pb-2">Required Columns</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label for="map_date" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Transaction Date *</label>
+                        <select name="map_date" id="map_date" required class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+                            <option value="">-- Select Column --</option>
+                            {% for h in headers %}
+                                <option value="{{ h }}" {% if defaults.date == h %}selected{% endif %}>{{ h }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-gray-500">When the purchase or transfer occurred.</p>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label for="map_amount" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Amount *</label>
+                        <select name="map_amount" id="map_amount" required class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+                            <option value="">-- Select Column --</option>
+                            {% for h in headers %}
+                                <option value="{{ h }}" {% if defaults.amount == h %}selected{% endif %}>{{ h }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-gray-500">The numerical monetary amount.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="map_description" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Description / Payee *</label>
+                    <select name="map_description" id="map_description" required class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+                        <option value="">-- Select Column --</option>
+                        {% for h in headers %}
+                            <option value="{{ h }}" {% if defaults.description == h %}selected{% endif %}>{{ h }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-[10px] text-gray-500">Merchant name, transfer description, or details.</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 pt-4 border-t border-gray-700/60">
+                <h3 class="text-xs font-semibold text-sky-400 uppercase tracking-widest border-b border-gray-700/60 pb-2">Optional Columns</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label for="map_category" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Category</label>
+                        <select name="map_category" id="map_category" class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+                            <option value="">-- Select Column (or auto-assign) --</option>
+                            {% for h in headers %}
+                                <option value="{{ h }}" {% if defaults.category == h %}selected{% endif %}>{{ h }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-gray-500">If left blank, our auto-categorizer will handle it.</p>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label for="map_type" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Type (Income/Expense)</label>
+                        <select name="map_type" id="map_type" class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+                            <option value="">-- Select Column (or auto-detect) --</option>
+                            {% for h in headers %}
+                                <option value="{{ h }}" {% if defaults.type == h %}selected{% endif %}>{{ h }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[10px] text-gray-500">Determines direction of money. Detected from sign by default.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="map_notes" class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Notes / Reference / ID</label>
+                    <select name="map_notes" id="map_notes" class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent">
+                        <option value="">-- Select Column (Optional) --</option>
+                        {% for h in headers %}
+                            <option value="{{ h }}" {% if defaults.notes == h %}selected{% endif %}>{{ h }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-[10px] text-gray-500">Additional reference details or bank tags.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-700/60">
+            <a href="{{ url_for('transactions.view_transactions') }}" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors">
+                Cancel
+            </a>
+            <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-violet-500 hover:bg-violet-600 transition-colors inline-flex items-center gap-1.5">
+                Preview & Validate <i class="bx bx-chevron-right text-base"></i>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
