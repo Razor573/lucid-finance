@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Preview CSV Import - LucidFinance{% endblock %}
+
+{% block header_title %}Preview & Confirm Import{% endblock %}
+{% block header_subtitle %}Review the parsed transactions and auto-categorization before saving them to the database{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    {% set ns = namespace(income_count=0, expense_count=0, income_sum=0.0, expense_sum=0.0) %}
+    {% for t in transactions %}
+        {% if t.type == 'income' %}
+            {% set ns.income_count = ns.income_count + 1 %}
+            {% set ns.income_sum = ns.income_sum + t.amount %}
+        {% else %}
+            {% set ns.expense_count = ns.expense_count + 1 %}
+            {% set ns.expense_sum = ns.expense_sum + t.amount %}
+        {% endif %}
+    {% endfor %}
+
+    <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Rows Validated</div>
+            <div class="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                <i class="bx bx-receipt text-violet-400 text-lg"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-bold text-white mb-1">{{ transactions|length }}</div>
+        <div class="text-xs text-gray-500 font-medium">Ready for bulk import</div>
+    </div>
+
+    <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Income Import</div>
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                <i class="bx bx-trending-up text-emerald-400 text-lg"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-bold text-white mb-1">
+            {% if current_user.base_currency == 'GBP' %}£{% elif current_user.base_currency == 'USD' %}${% else %}€{% endif %}{{ "{:,.2f}".format(ns.income_sum) }}
+        </div>
+        <div class="text-xs text-gray-500 font-medium">{{ ns.income_count }} transactions</div>
+    </div>
+
+    <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Expenses Import</div>
+            <div class="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
+                <i class="bx bx-trending-down text-red-400 text-lg"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-bold text-red-400 mb-1">
+            {% if current_user.base_currency == 'GBP' %}£{% elif current_user.base_currency == 'USD' %}${% else %}€{% endif %}{{ "{:,.2f}".format(ns.expense_sum) }}
+        </div>
+        <div class="text-xs text-gray-500 font-medium">{{ ns.expense_count }} transactions</div>
+    </div>
+</div>
+
+<div class="bg-gray-800 border border-gray-700/60 rounded-2xl shadow-card overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-700/60 p-5 gap-3 bg-gray-800/80">
+        <h2 class="text-base font-semibold text-white">Parsed Transactions List</h2>
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('transactions.view_transactions') }}" class="px-4 py-2 rounded-lg text-xs font-semibold text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors">
+                <i class="bx bx-x"></i> Cancel
+            </a>
+            
+            <form method="POST" action="{{ url_for('transactions.upload_confirm') }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="transactions_json" value="{{ json_data }}">
+                <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-violet-500 hover:bg-violet-600 transition-colors inline-flex items-center gap-1">
+                    <i class="bx bx-check-double"></i> Confirm Bulk Import
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-700/60 bg-gray-800/40">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Description</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Category</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Type</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Amount</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes / Reference</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700/40">
+                {% for t in transactions %}
+                <tr class="hover:bg-gray-700/30 transition-colors">
+                    <td class="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">
+                        {{ t.date.strftime('%d %b %Y') }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-gray-200 font-medium">{{ t.description }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                            {% if t.category == 'Groceries' %}bg-cyan-500/15 text-cyan-400
+                            {% elif t.category == 'Transport' %}bg-amber-500/15 text-amber-400
+                            {% elif t.category == 'Entertainment' %}bg-purple-500/15 text-purple-400
+                            {% elif t.category == 'Bills' %}bg-rose-500/15 text-rose-400
+                            {% elif t.category == 'Salary' %}bg-emerald-500/15 text-emerald-400
+                            {% else %}bg-gray-500/15 text-gray-400{% endif %}">
+                            <i class="bx bx-purchase-tag-alt text-[10px]"></i> {{ t.category }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center gap-1 text-xs font-medium
+                            {% if t.type == 'income' %}text-emerald-400{% else %}text-red-400{% endif %}">
+                            <i class="bx {% if t.type == 'income' %}bx-plus{% else %}bx-minus{% endif %} text-sm"></i>
+                            {{ t.type.upper() }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right font-semibold whitespace-nowrap
+                        {% if t.type == 'income' %}text-emerald-400{% else %}text-red-400{% endif %}">
+                        {% if t.type == 'income' %}+{% else %}-{% endif %}
+                        {% if current_user.base_currency == 'GBP' %}£{% elif current_user.base_currency == 'USD' %}${% else %}€{% endif %}{{ "{:,.2f}".format(t.amount) }}
+                    </td>
+                    <td class="px-4 py-3 text-gray-400 max-w-[200px] truncate text-xs">
+                        {{ t.notes or '' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 p-5 border-t border-gray-700/60 bg-gray-800/80">
+        <a href="{{ url_for('transactions.view_transactions') }}" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors">
+            Cancel
+        </a>
+        <form method="POST" action="{{ url_for('transactions.upload_confirm') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="transactions_json" value="{{ json_data }}">
+            <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-violet-500 hover:bg-violet-600 transition-colors">
+                Confirm & Import {{ transactions|length }} Rows
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
