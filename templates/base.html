@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}LucidFinance{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Personal finance analytics and budget tracking dashboard{% endblock %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        violet: {
+                            50:  '#f1eeff', 100: '#e6e1ff', 200: '#d2cbff',
+                            300: '#b7acff', 400: '#9c8cff', 500: '#8470ff',
+                            600: '#755ff8', 700: '#5d47de', 800: '#4634b1',
+                            900: '#2f227c', 950: '#1c1357',
+                        },
+                        sky: {
+                            400: '#7bc8ff', 500: '#67bfff',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+                    },
+                    boxShadow: {
+                        'card': '0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="font-sans bg-gray-950 text-gray-100 antialiased">
+<div class="flex h-screen overflow-hidden">
+
+    <div id="sidebarBackdrop"
+         class="fixed inset-0 bg-gray-900/60 z-40 lg:hidden opacity-0 pointer-events-none transition-opacity duration-200"
+         aria-hidden="true"></div>
+
+    <aside id="sidebar"
+           class="flex flex-col absolute z-40 left-0 top-0 lg:static h-screen overflow-y-auto w-64 shrink-0
+                  bg-gray-800 border-r border-gray-700/60 transition-transform duration-200 ease-in-out
+                  -translate-x-full lg:translate-x-0">
+
+        <div class="flex items-center gap-3 px-5 h-16 border-b border-gray-700/60 shrink-0">
+            <svg class="fill-violet-500 shrink-0" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+                <path d="M31.956 14.8C31.372 6.92 25.08.628 17.2.044V5.76a9.04 9.04 0 0 0 9.04 9.04h5.716ZM14.8 26.24v5.716C6.92 31.372.63 25.08.044 17.2H5.76a9.04 9.04 0 0 1 9.04 9.04Zm11.44-9.04h5.716c-.584 7.88-6.876 14.172-14.756 14.756V26.24a9.04 9.04 0 0 1 9.04-9.04ZM.044 14.8C.63 6.92 6.92.628 14.8.044V5.76a9.04 9.04 0 0 1-9.04 9.04H.044Z"/>
+            </svg>
+            <span class="font-bold text-white text-base tracking-tight">LucidFinance</span>
+        </div>
+
+        <nav class="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
+            <p class="px-3 mb-2 text-xs font-semibold uppercase text-gray-500 tracking-widest">Main</p>
+
+            <a href="{{ url_for('dashboard.view_dashboard') }}"
+               id="nav-dashboard"
+               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150
+                      {% if request.endpoint and request.endpoint.startswith('dashboard') %}
+                        bg-violet-500/15 text-violet-400
+                      {% else %}
+                        text-gray-300 hover:bg-gray-700/60 hover:text-white
+                      {% endif %}">
+                <i class="bx bx-bar-chart-alt-2 text-[18px] shrink-0
+                          {% if request.endpoint and request.endpoint.startswith('dashboard') %}text-violet-400{% else %}text-gray-500 group-hover:text-gray-300{% endif %}"></i>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="{{ url_for('transactions.view_transactions') }}"
+               id="nav-transactions"
+               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150
+                      {% if request.endpoint and request.endpoint.startswith('transactions') %}
+                        bg-violet-500/15 text-violet-400
+                      {% else %}
+                        text-gray-300 hover:bg-gray-700/60 hover:text-white
+                      {% endif %}">
+                <i class="bx bx-transfer-alt text-[18px] shrink-0
+                          {% if request.endpoint and request.endpoint.startswith('transactions') %}text-violet-400{% else %}text-gray-500 group-hover:text-gray-300{% endif %}"></i>
+                <span>Transactions</span>
+            </a>
+
+            <a href="{{ url_for('stocks.view_portfolio') }}"
+               id="nav-stocks"
+               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150
+                      {% if request.endpoint and request.endpoint.startswith('stocks') %}
+                        bg-violet-500/15 text-violet-400
+                      {% else %}
+                        text-gray-300 hover:bg-gray-700/60 hover:text-white
+                      {% endif %}">
+                <i class="bx bx-line-chart text-[18px] shrink-0
+                          {% if request.endpoint and request.endpoint.startswith('stocks') %}text-violet-400{% else %}text-gray-500 group-hover:text-gray-300{% endif %}"></i>
+                <span>Portfolio</span>
+            </a>
+
+            <div class="!my-4 border-t border-gray-700/60"></div>
+            <p class="px-3 mb-2 text-xs font-semibold uppercase text-gray-500 tracking-widest">Account</p>
+
+            <form action="{{ url_for('auth.logout') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
+                               text-gray-300 hover:bg-gray-700/60 hover:text-white transition-all duration-150">
+                    <i class="bx bx-log-out text-[18px] shrink-0 text-gray-500 group-hover:text-gray-300"></i>
+                    <span>Sign Out</span>
+                </button>
+            </form>
+        </nav>
+
+        <div class="px-4 py-4 border-t border-gray-700/60 shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                    {{ current_user.username[0].upper() if current_user.is_authenticated else '?' }}
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-white truncate">{{ current_user.username if current_user.is_authenticated else '' }}</p>
+                    <p class="text-xs text-gray-400 truncate">{{ current_user.base_currency if current_user.is_authenticated else '' }} account</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+        <header class="flex items-center gap-4 px-4 sm:px-6 h-16 bg-gray-800/50 backdrop-blur-sm border-b border-gray-700/60 shrink-0">
+            <button id="sidebarToggle" type="button"
+                    class="lg:hidden p-1 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700/60 transition-colors">
+                <i class="bx bx-menu text-xl"></i>
+            </button>
+
+            <div class="flex-1 min-w-0">
+                <h1 class="text-sm font-semibold text-white truncate">{% block header_title %}Dashboard{% endblock %}</h1>
+                <p class="text-xs text-gray-500 hidden sm:block truncate">{% block header_subtitle %}{% endblock %}</p>
+            </div>
+
+            {% if current_user.is_authenticated %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-500/10 text-violet-400 border border-violet-500/20 shrink-0">
+                <i class="bx bx-coin text-sm"></i>
+                {{ current_user.base_currency }}
+            </span>
+            {% endif %}
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="px-4 sm:px-6 pt-4 space-y-2 shrink-0">
+            {% for category, message in messages %}
+            <div class="flex items-start gap-3 px-4 py-3 rounded-xl text-sm border
+                {% if category == 'danger' %}bg-red-500/10 text-red-400 border-red-500/20
+                {% elif category == 'success' %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20
+                {% elif category == 'warning' %}bg-amber-500/10 text-amber-400 border-amber-500/20
+                {% else %}bg-sky-500/10 text-sky-400 border-sky-500/20{% endif %}">
+                <i class="bx shrink-0 text-lg mt-0.5
+                    {% if category == 'danger' %}bx-error-circle
+                    {% elif category == 'success' %}bx-check-circle
+                    {% elif category == 'warning' %}bx-error
+                    {% else %}bx-info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<script>
+    const sidebar       = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const backdrop      = document.getElementById('sidebarBackdrop');
+
+    function openSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+        backdrop.classList.add('opacity-100');
+    }
+    function closeSidebar() {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('opacity-0', 'pointer-events-none');
+        backdrop.classList.remove('opacity-100');
+    }
+    if (sidebarToggle) sidebarToggle.addEventListener('click', openSidebar);
+    if (backdrop)       backdrop.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
