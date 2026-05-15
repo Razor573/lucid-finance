@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - LucidFinance{% endblock %}
+{% block header_title %}Financial Dashboard{% endblock %}
+{% block header_subtitle %}Your spending, cashflow &amp; budget health at a glance{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+    <!-- Net Balance -->
+    <div class="col-span-2 sm:col-span-1 bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Net Balance</div>
+            <div class="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                <i class="bx bx-wallet text-violet-400 text-lg"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-bold text-white mb-1">
+            {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+            "{:,.0f}".format(net_savings) }}
+        </div>
+        <div
+            class="text-xs {% if net_savings >= 0 %}text-emerald-400{% else %}text-red-400{% endif %} font-medium flex items-center gap-1">
+            <i class="bx {% if net_savings >= 0 %}bx-trending-up{% else %}bx-trending-down{% endif %} text-base"></i>
+            {% if net_savings >= 0 %}Surplus this month{% else %}Deficit this month{% endif %}
+        </div>
+    </div>
+
+    <!-- Income -->
+    <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Income</div>
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                <i class="bx bx-plus-circle text-emerald-400 text-lg"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-bold text-white mb-1">
+            {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+            "{:,.0f}".format(total_income) }}
+        </div>
+        <div class="text-xs text-gray-500 font-medium">Monthly inflows</div>
+    </div>
+
+    <!-- Expenses -->
+    <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Expenses</div>
+            <div class="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
+                <i class="bx bx-minus-circle text-red-400 text-lg"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-bold text-white mb-1">
+            {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+            "{:,.0f}".format(total_expenses) }}
+        </div>
+        <div
+            class="text-xs {% if over_budget_count > 0 %}text-red-400{% else %}text-gray-500{% endif %} font-medium flex items-center gap-1">
+            {% if over_budget_count > 0 %}
+            <i class="bx bxs-bell-ring text-sm"></i> {{ over_budget_count }} budget{% if over_budget_count > 1 %}s{%
+            endif %} over limit
+            {% else %}
+            All budgets on track
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Savings Rate -->
+    <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Savings Rate</div>
+            <div class="w-8 h-8 rounded-lg bg-sky-500/15 flex items-center justify-center">
+                <i class="bx bx-percent text-sky-400 text-lg"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-bold text-white mb-1">{{ "{:.1f}".format(savings_rate) }}%</div>
+        <div
+            class="text-xs font-medium flex items-center gap-1
+            {% if savings_rate >= 20 %}text-emerald-400{% elif savings_rate > 0 %}text-amber-400{% else %}text-red-400{% endif %}">
+            <i
+                class="bx {% if savings_rate >= 20 %}bx-check-double{% elif savings_rate > 0 %}bx-check{% else %}bx-x{% endif %} text-sm"></i>
+            {% if savings_rate >= 20 %}Excellent (target &gt; 20%){% elif savings_rate > 0 %}On track{% else
+            %}Overspending{% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+
+    <!-- Charts -->
+    <div class="xl:col-span-2 space-y-4">
+        <!-- 6-Month Trend -->
+        <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold text-white">6-Month Cashflow Trend</h2>
+                <span class="text-xs text-gray-500 bg-gray-700/60 px-2 py-1 rounded-md">{{ base_currency }}</span>
+            </div>
+            <div class="relative h-56">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Category Doughnut -->
+        <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold text-white">Spending by Category</h2>
+                <input type="month" id="categoryMonthFilter" value="{{ today_str }}" class="bg-gray-700/60 border border-gray-600/80 text-gray-300 text-xs rounded-lg px-2 py-1
+                              focus:outline-none focus:ring-1 focus:ring-violet-500">
+            </div>
+            <div class="relative h-52 flex items-center justify-center">
+                <canvas id="spendingChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budgets -->
+    <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-white">Budget Tracking</h2>
+            <button id="openBudgetModal" class="flex items-center gap-1 text-xs font-semibold text-violet-400 hover:text-violet-300
+                           bg-violet-500/10 hover:bg-violet-500/20 px-2.5 py-1.5 rounded-lg transition-colors">
+                <i class="bx bx-plus text-sm"></i> Set Limit
+            </button>
+        </div>
+
+        {% if not budget_stats %}
+        <div class="flex-1 flex flex-col items-center justify-center text-center py-8">
+            <div class="w-12 h-12 rounded-xl bg-gray-700/60 flex items-center justify-center mb-3">
+                <i class="bx bx-list-minus text-2xl text-gray-500"></i>
+            </div>
+            <p class="text-sm text-gray-400 font-medium">No budgets yet</p>
+            <p class="text-xs text-gray-500 mt-1">Click "Set Limit" to start tracking</p>
+        </div>
+        {% else %}
+        <div class="space-y-4 flex-1 overflow-y-auto">
+            {% for b in budget_stats %}
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-2">
+                        <i class="bx text-sm
+                            {% if b.category == 'Groceries' %}bx-cart text-cyan-400
+                            {% elif b.category == 'Transport' %}bx-bus text-amber-400
+                            {% elif b.category == 'Entertainment' %}bx-tv text-purple-400
+                            {% elif b.category == 'Bills' %}bx-receipt text-rose-400
+                            {% else %}bx-money text-gray-400{% endif %}"></i>
+                        <span class="text-xs font-medium text-gray-300">{{ b.category }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="text-xs {% if b.over %}text-red-400 font-semibold{% else %}text-gray-400{% endif %}">
+                            {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+                            "{:,.0f}".format(b.spent) }}
+                            / {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+                            "{:,.0f}".format(b.limit) }}
+                        </span>
+                        <form action="{{ url_for('dashboard.delete_budget', budget_id=b.id) }}" method="POST"
+                            onsubmit="return confirm('Delete {{ b.category }} budget?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="text-gray-600 hover:text-red-400 transition-colors">
+                                <i class="bx bx-trash text-sm"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500
+                        {% if b.actual_percent >= 100 %}bg-red-500
+                        {% elif b.actual_percent >= 80 %}bg-amber-500
+                        {% else %}bg-violet-500{% endif %}" style="width: {{ b.percent }}%"></div>
+                </div>
+                <div class="flex justify-between mt-1">
+                    <span class="text-[10px] text-gray-500">{{ "{:.0f}".format(b.actual_percent) }}% used</span>
+                    {% if b.over %}<span class="text-[10px] text-red-400 font-semibold">OVER LIMIT</span>{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="budgetModal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="absolute inset-0 bg-gray-950/70 backdrop-blur-sm" id="budgetModalBackdrop"></div>
+    <div class="relative bg-gray-800 border border-gray-700/60 rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-base font-semibold text-white">Set Budget Limit</h3>
+            <button id="closeBudgetModal" class="text-gray-400 hover:text-white transition-colors">
+                <i class="bx bx-x text-xl"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('dashboard.view_dashboard') }}" class="space-y-4">
+            {{ budget_form.hidden_tag() }}
+
+            <div class="space-y-1.5">
+                {{ budget_form.category.label(class="block text-sm font-medium text-gray-300") }}
+                {{ budget_form.category(class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80
+                text-gray-100 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500
+                focus:border-transparent") }}
+            </div>
+
+            <div class="space-y-1.5">
+                {{ budget_form.monthly_limit.label(class="block text-sm font-medium text-gray-300") }}
+                {{ budget_form.monthly_limit(placeholder="0.00", class="block w-full rounded-lg bg-gray-700/60 border
+                border-gray-600/80 text-gray-100 placeholder-gray-500 px-3.5 py-2.5 text-sm focus:outline-none
+                focus:ring-2 focus:ring-violet-500 focus:border-transparent") }}
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="cancelBudgetBtn"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white bg-violet-500 hover:bg-violet-600 transition-colors">
+                    Save Budget
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    const budgetModal = document.getElementById('budgetModal');
+    const openBtn = document.getElementById('openBudgetModal');
+    const closeBtn = document.getElementById('closeBudgetModal');
+    const cancelBtn = document.getElementById('cancelBudgetBtn');
+    const modalBackdrop = document.getElementById('budgetModalBackdrop');
+
+    function openModal() {
+        budgetModal.classList.remove('opacity-0', 'pointer-events-none');
+        budgetModal.classList.add('opacity-100');
+    }
+    function closeModal() {
+        budgetModal.classList.add('opacity-0', 'pointer-events-none');
+        budgetModal.classList.remove('opacity-100');
+    }
+
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (modalBackdrop) modalBackdrop.addEventListener('click', closeModal);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+{% endblock %}
