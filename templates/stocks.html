@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+
+{% block title %}Stock Portfolio - LucidFinance{% endblock %}
+
+{% block header_title %}Equity & Assets Portfolio{% endblock %}
+{% block header_subtitle %}Track stock holdings, real-time market value, and currency-adjusted investment returns{%
+endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .sparkline-container {
+        width: 140px;
+        height: 45px;
+        position: relative;
+    }
+
+    .gain-glow {
+        color: var(--income) !important;
+        text-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+
+    .loss-glow {
+        color: var(--expense) !important;
+        text-shadow: 0 0 10px rgba(244, 63, 94, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <!-- Total Invested -->
+    <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Invested</div>
+            <div class="w-8 h-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                <i class="bx bx-wallet text-violet-400 text-lg"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-bold text-white mb-1">
+            {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+            "{:,.2f}".format(stats.total_invested) }}
+        </div>
+        <div class="text-xs text-gray-500 font-medium">Original purchase cost (Base FX)</div>
+    </div>
+
+    <!-- Current Net Value -->
+    <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Current Net Value</div>
+            <div class="w-8 h-8 rounded-lg bg-cyan-500/15 flex items-center justify-center">
+                <i class="bx bx-bar-chart-alt-2 text-cyan-400 text-lg"></i>
+            </div>
+        </div>
+        <div class="text-2xl font-bold text-white mb-1">
+            {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+            "{:,.2f}".format(stats.current_value) }}
+        </div>
+        <div class="text-xs text-gray-500 font-medium">Live market valuation (Base FX)</div>
+    </div>
+
+    <!-- Total Return -->
+    <div
+        class="bg-gray-800 border border-gray-700/60 rounded-2xl p-5 shadow-card">
+        <div class="flex items-start justify-between mb-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Net Return</div>
+            <div
+                class="w-8 h-8 rounded-lg {% if stats.net_return >= 0 %}bg-emerald-500/15{% else %}bg-rose-500/15{% endif %} flex items-center justify-center">
+                <i
+                    class="bx {% if stats.net_return >= 0 %}bx-trending-up text-emerald-400{% else %}bx-trending-down text-rose-400{% endif %} text-lg"></i>
+            </div>
+        </div>
+        <div
+            class="text-2xl font-bold mb-1 {% if stats.net_return >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+            {% if stats.net_return >= 0 %}+{% endif %}
+            {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+            "{:,.2f}".format(stats.net_return) }}
+        </div>
+        <div
+            class="text-xs font-medium flex items-center gap-1 {% if stats.net_return >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+            <i
+                class="bx {% if stats.net_return >= 0 %}bx-up-arrow-alt{% else %}bx-down-arrow-alt{% endif %} text-base"></i>
+            <span>{{ "{:+.2f}%".format(stats.return_percent) }} all-time return</span>
+        </div>
+    </div>
+</div>
+
+<div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-4 mb-4 shadow-card">
+    <div class="flex items-center justify-between flex-wrap gap-4">
+        <div class="text-sm font-medium text-gray-400">
+            Active Assets: <strong class="text-white">{{ holdings|length }}</strong> holdings tracked
+        </div>
+        <button
+            class="flex items-center gap-2 bg-violet-500 hover:bg-violet-600 text-white font-semibold text-sm rounded-lg px-4 py-2 transition-colors"
+            id="openAddStockModal">
+            <i class="bx bx-plus text-base"></i> Add New Holding
+        </button>
+    </div>
+</div>
+
+<div class="bg-gray-800 border border-gray-700/60 rounded-2xl shadow-card overflow-hidden">
+    {% if not holdings %}
+    <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="w-14 h-14 rounded-2xl bg-gray-700/60 flex items-center justify-center mb-4">
+            <i class="bx bx-line-chart text-3xl text-gray-500"></i>
+        </div>
+        <p class="text-sm font-medium text-gray-300">No active holdings recorded</p>
+        <p class="text-xs text-gray-500 mt-1">Start tracking by clicking "Add New Holding".</p>
+    </div>
+    {% else %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-700/60">
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Asset
+                        Ticker</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Shares
+                        Held</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Avg
+                        Cost (Asset / Base)</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Current
+                        Price (Asset / Base)</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Total
+                        Invested (Base)</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Current
+                        Value (Base)</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Return
+                        (Base)</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                        style="width: 160px;">30-Day Trend (Base)</th>
+                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700/40">
+                {% for h in holdings %}
+                <tr class="hover:bg-gray-700/30 transition-colors">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="flex flex-col">
+                            <span class="font-extrabold text-white text-sm tracking-wide">{{ h.ticker }}</span>
+                            <span class="text-[10px] text-gray-500">Currency: {{ h.currency }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 font-semibold text-gray-200">{{ "{:,.4f}".format(h.shares) }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex flex-col">
+                            <span class="text-gray-200 text-xs">{{ h.currency }} {{ "{:,.2f}".format(h.purchase_price)
+                                }}</span>
+                            <span class="text-[10px] text-gray-500">
+                                {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif
+                                %}{{ "{:,.2f}".format(h.purchase_price_base) }}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex flex-col">
+                            <span class="text-gray-200 text-xs">{{ h.currency }} {{ "{:,.2f}".format(h.current_price)
+                                }}</span>
+                            <span class="text-[10px] text-gray-400 font-semibold">
+                                {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif
+                                %}{{ "{:,.2f}".format(h.current_price_base) }}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 font-semibold text-gray-400">
+                        {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+                        "{:,.2f}".format(h.total_invested_base) }}
+                    </td>
+                    <td class="px-4 py-3 font-bold text-white">
+                        {% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% else %}€{% endif %}{{
+                        "{:,.2f}".format(h.current_value_base) }}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="flex flex-col">
+                            <span
+                                class="font-bold text-sm {% if h.net_return_base >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                                {% if h.net_return_base >= 0 %}+{% endif %}{% if base_currency == 'GBP' %}£{% elif
+                                base_currency == 'USD' %}${% else %}€{% endif %}{{ "{:,.2f}".format(h.net_return_base)
+                                }}
+                            </span>
+                            <span
+                                class="text-xs font-semibold {% if h.net_return_base >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+                                {{ "{:+.2f}%".format(h.return_percent) }}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="sparkline-container">
+                            <canvas id="sparkline-{{ h.ticker }}" class="sparkline-canvas"
+                                data-ticker="{{ h.ticker }}"></canvas>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <form action="{{ url_for('stocks.delete_holding', holding_id=h.id) }}" method="POST"
+                            class="inline"
+                            onsubmit="return confirm('Are you sure you want to delete all holdings of {{ h.ticker }}?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit"
+                                class="flex items-center gap-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-xs font-medium rounded-lg px-2.5 py-1.5 transition-colors mx-auto">
+                                <i class="bx bx-trash text-sm"></i> Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal -->
+<div id="addStockModal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="absolute inset-0 bg-gray-950/70 backdrop-blur-sm" id="addStockModalBackdrop"></div>
+    <div class="relative bg-gray-800 border border-gray-700/60 rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-base font-semibold text-white">Add Portfolio Stock / Holding</h3>
+            <button onclick="closeModal('addStockModal')" class="text-gray-400 hover:text-white transition-colors">
+                <i class="bx bx-x text-xl"></i>
+            </button>
+        </div>
+        <form method="POST" action="{{ url_for('stocks.add_holding') }}" class="space-y-4">
+            {{ form.hidden_tag() }}
+
+            <div class="space-y-1.5">
+                {{ form.ticker.label(class="block text-sm font-medium text-gray-300") }}
+                {{ form.ticker(class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100
+                placeholder-gray-500 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500
+                focus:border-transparent", placeholder="e.g. AAPL, TSLA, MSFT, VOD.L") }}
+                <span class="text-xs text-gray-500 block">Enter ticker exactly as listed on Yahoo Finance. London Stock
+                    Exchange requires '.L' (e.g. VOD.L).</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    {{ form.shares.label(class="block text-sm font-medium text-gray-300") }}
+                    {{ form.shares(class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100
+                    placeholder-gray-500 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500
+                    focus:border-transparent", placeholder="0.00") }}
+                </div>
+                <div class="space-y-1.5">
+                    {{ form.purchase_price.label(class="block text-sm font-medium text-gray-300") }}
+                    {{ form.purchase_price(class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80
+                    text-gray-100 placeholder-gray-500 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2
+                    focus:ring-violet-500 focus:border-transparent", placeholder="0.00") }}
+                </div>
+            </div>
+
+            <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3.5 text-xs text-cyan-400">
+                <div class="flex gap-2">
+                    <i class="bx bx-info-circle text-base shrink-0 mt-0.5"></i>
+                    <span>Weighted Average Price logic will apply automatically if you enter a ticker symbol you already
+                        own.</span>
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors"
+                    onclick="closeModal('addStockModal')">Cancel</button>
+                <button type="submit"
+                    class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white bg-violet-500 hover:bg-violet-600 transition-colors">Save
+                    Holding</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/stocks.js') }}"></script>
+<script>
+    const addStockModal = document.getElementById('addStockModal');
+    const openAddBtn = document.getElementById('openAddStockModal');
+    const modalBackdrop = document.getElementById('addStockModalBackdrop');
+
+    function openModal(id) {
+        addStockModal.classList.remove('opacity-0', 'pointer-events-none');
+        addStockModal.classList.add('opacity-100');
+    }
+    function closeModal(id) {
+        addStockModal.classList.add('opacity-0', 'pointer-events-none');
+        addStockModal.classList.remove('opacity-100');
+    }
+
+    if (openAddBtn) {
+        openAddBtn.addEventListener('click', () => openModal('addStockModal'));
+    }
+    if (modalBackdrop) {
+        modalBackdrop.addEventListener('click', () => closeModal('addStockModal'));
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal('addStockModal'); });
+</script>
+{% endblock %}
