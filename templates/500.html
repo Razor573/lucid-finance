@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Internal Server Error - LucidFinance{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card" style="text-align: center; max-width: 500px;">
+        <div class="auth-header">
+            <i class="bx bx-server" style="font-size: 60px; color: var(--warning); filter: drop-shadow(0 0 12px var(--warning-glow));"></i>
+            <h1 style="font-size: 72px; font-weight: 900; margin: 10px 0; color: var(--warning);">500</h1>
+            <h2>Server Fault</h2>
+            <p style="margin-top: 10px; font-size: 14px;">An unexpected error occurred while processing your request on our backend database.</p>
+        </div>
+        
+        <a href="/" class="btn btn-primary" style="margin-top: 15px; padding: 12px 24px;">
+            <i class="bx bx-refresh"></i>
+            Go to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
