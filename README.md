@@ -76,7 +76,7 @@ To run this application locally, ensure you have Python 3.8+ installed:
 
 ### 1. Clone the repository & create virtualenv
 ```bash
-git clone <repository-url>
+git clone https://github.com/Razor573/lucid-finance.git
 cd finance-dashboard
 python -m venv venv
 # On Windows:
@@ -130,13 +130,15 @@ Expected output:
 platform win32 -- Python 3.x.x, pytest-8.x.x, pluggy-1.x.x
 rootdir: C:\...\finance-dashboard
 plugins: flask-1.x.x
-collected 14 items
+collected 26 items
 
-tests/test_categoriser.py ......                                         [ 42%]
-tests/test_csv_parser.py .....                                           [ 78%]
-tests/test_stock_cache.py ......                                         [100%]
+tests/test_categoriser.py ......                                         [ 23%]
+tests/test_csv_parser.py ....                                            [ 38%]
+tests/test_integration.py .                                              [ 42%]
+tests/test_security.py ........                                          [ 73%]
+tests/test_stock_cache.py .......                                        [100%]
 
-============================== 17 passed in 0.85s ==============================
+============================== 26 passed in x.xxs ==============================
 ```
 
 ---
