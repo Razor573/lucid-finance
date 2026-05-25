@@ -114,7 +114,15 @@
                     </td>
                     <td class="px-4 py-3 text-right font-semibold
                         {% if tx.type == 'income' %}text-emerald-400{% else %}text-red-400{% endif %}">
-                        {% if tx.type == 'income' %}+{% else %}-{% endif %}{% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% elif base_currency == 'EUR' %}€{% else %}{{ base_currency or '' }}{% endif %}{{ "{:,.2f}".format(tx.amount) }}
+                        <div>
+                            {% set converted_amount = convert_currency(tx.amount | float, tx.currency, base_currency, db_session) %}
+                            {% if tx.type == 'income' %}+{% else %}-{% endif %}{% if base_currency == 'GBP' %}£{% elif base_currency == 'USD' %}${% elif base_currency == 'EUR' %}€{% else %}{{ base_currency or '' }}{% endif %}{{ "{:,.2f}".format(converted_amount) }}
+                        </div>
+                        {% if tx.currency != base_currency %}
+                        <div class="text-[10px] text-gray-500 font-normal">
+                            Orig: {% if tx.type == 'income' %}+{% else %}-{% endif %}{% if tx.currency == 'GBP' %}£{% elif tx.currency == 'USD' %}${% elif tx.currency == 'EUR' %}€{% else %}{{ tx.currency or '' }}{% endif %}{{ "{:,.2f}".format(tx.amount) }}
+                        </div>
+                        {% endif %}
                     </td>
                     <td class="px-4 py-3 text-center">
                         <form action="{{ url_for('transactions.delete_transaction', tx_id=tx.id) }}" method="POST"

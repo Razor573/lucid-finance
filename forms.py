@@ -68,3 +68,9 @@ class CSVUploadForm(FlaskForm):
 
 class LogoutForm(FlaskForm):
     submit = SubmitField('Log Out')
+
+class SettingsForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=4, max=50)])
+    email = StringField('Email Address', validators=[DataRequired(), Email(), Length(max=150)])
+    base_currency = SelectField('Base Currency', choices=CURRENCY_CHOICES, default='GBP', validators=[DataRequired()])
+    submit = SubmitField('Save Settings')

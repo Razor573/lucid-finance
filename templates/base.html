@@ -102,6 +102,19 @@
             <div class="!my-4 border-t border-gray-700/60"></div>
             <p class="px-3 mb-2 text-xs font-semibold uppercase text-gray-500 tracking-widest">Account</p>
 
+            <a href="{{ url_for('auth.settings') }}"
+               id="nav-settings"
+               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150
+                      {% if request.endpoint and request.endpoint == 'auth.settings' %}
+                        bg-violet-500/15 text-violet-400
+                      {% else %}
+                        text-gray-300 hover:bg-gray-700/60 hover:text-white
+                      {% endif %}">
+                <i class="bx bx-cog text-[18px] shrink-0
+                          {% if request.endpoint and request.endpoint == 'auth.settings' %}text-violet-400{% else %}text-gray-500 group-hover:text-gray-300{% endif %}"></i>
+                <span>Settings</span>
+            </a>
+
             <form action="{{ url_for('auth.logout') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit"
@@ -192,6 +205,25 @@
     if (sidebarToggle) sidebarToggle.addEventListener('click', openSidebar);
     if (backdrop)       backdrop.addEventListener('click', closeSidebar);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
+
+    // Persisted layout preferences from Settings
+    function applyPersistedLayout() {
+        const isCompact = localStorage.getItem('settings-layout-compact-sidebar') === 'true';
+        if (isCompact && sidebar) {
+            sidebar.classList.add('lg:w-20');
+            sidebar.classList.remove('lg:w-64');
+            document.querySelectorAll('#sidebar span').forEach(s => s.classList.add('lg:hidden'));
+            document.querySelectorAll('#sidebar p').forEach(p => p.classList.add('lg:hidden'));
+        }
+        
+        const isGlass = localStorage.getItem('settings-layout-glassmorphic') === 'true';
+        if (isGlass) {
+            document.querySelectorAll('.bg-gray-800').forEach(card => {
+                card.classList.add('bg-gray-800/40', 'backdrop-blur-md');
+            });
+        }
+    }
+    applyPersistedLayout();
 </script>
 {% block extra_js %}{% endblock %}
 </body>

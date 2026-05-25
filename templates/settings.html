@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+{% block title %}Settings - LucidFinance{% endblock %}
+{% block header_title %}Settings{% endblock %}
+{% block header_subtitle %}Manage your account details, layout style, and financial data{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto flex flex-col md:flex-row gap-6">
+    <!-- Sidebar navigation for settings tabs -->
+    <aside class="w-full md:w-64 shrink-0 flex flex-col gap-1">
+        <button onclick="switchTab('profile')" id="tab-profile-btn"
+                class="settings-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 text-violet-400 bg-violet-500/10 border border-violet-500/20">
+            <i class="bx bx-user-circle text-lg"></i>
+            <span>Profile & Currency</span>
+        </button>
+        <button onclick="switchTab('appearance')" id="tab-appearance-btn"
+                class="settings-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 text-gray-400 hover:bg-gray-800/40 hover:text-gray-200">
+            <i class="bx bx-palette text-lg"></i>
+            <span>Appearance & Theme</span>
+        </button>
+        <button onclick="switchTab('data')" id="tab-data-btn"
+                class="settings-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 text-gray-400 hover:bg-gray-800/40 hover:text-gray-200">
+            <i class="bx bx-data text-lg"></i>
+            <span>Data Management</span>
+        </button>
+    </aside>
+
+    <!-- Main settings cards container -->
+    <div class="flex-1">
+        <!-- Tab 1: Profile & Preferences -->
+        <div id="settings-tab-profile" class="settings-tab-content space-y-6">
+            <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-6 shadow-card transition-all duration-300 relative overflow-hidden">
+                <!-- Background decoration element -->
+                <div class="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
+
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 text-xl font-bold">
+                        {{ current_user.username[0].upper() if current_user.is_authenticated else '?' }}
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            User Profile
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-violet-500/20 text-violet-400 border border-violet-500/30 uppercase tracking-wider">
+                                Pro Member
+                            </span>
+                        </h2>
+                        <p class="text-xs text-gray-400">Update your account credentials and base currency configuration.</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.settings') }}" novalidate class="space-y-4">
+                    {{ form.hidden_tag() }}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label for="username" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Username</label>
+                            <div class="relative">
+                                <i class="bx bx-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                                {{ form.username(
+                                    id="username",
+                                    class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 pl-9 pr-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-colors duration-150"
+                                ) }}
+                            </div>
+                            {% if form.username.errors %}
+                            <p class="text-xs text-red-400 mt-1">{{ form.username.errors[0] }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label for="email" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Email Address</label>
+                            <div class="relative">
+                                <i class="bx bx-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                                {{ form.email(
+                                    id="email",
+                                    class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 pl-9 pr-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-colors duration-150"
+                                ) }}
+                            </div>
+                            {% if form.email.errors %}
+                            <p class="text-xs text-red-400 mt-1">{{ form.email.errors[0] }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5 pt-2">
+                        <label for="base_currency" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Base Currency</label>
+                        <div class="relative">
+                            <i class="bx bx-coin-stack absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                            {{ form.base_currency(
+                                id="base_currency",
+                                class="block w-full rounded-lg bg-gray-700/60 border border-gray-600/80 text-gray-100 pl-9 pr-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-colors duration-150"
+                            ) }}
+                        </div>
+                        <p class="text-[11px] text-gray-500 mt-1">This sets the dashboard totals, budgets tracking, stock chart currency, and original transaction values conversions.</p>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-700/60 flex justify-end">
+                        <button type="submit" class="flex items-center justify-center gap-2 bg-violet-500 hover:bg-violet-600 active:bg-violet-700 text-white font-semibold text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-all duration-150 shadow-lg shadow-violet-500/20">
+                            <span>Save Changes</span>
+                            <i class="bx bx-save text-base"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tab 2: Theme & Appearance -->
+        <div id="settings-tab-appearance" class="settings-tab-content space-y-6 hidden">
+            <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-6 shadow-card transition-all duration-300">
+                <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                    <i class="bx bx-paint text-violet-400"></i> Theme & Customization
+                </h2>
+                <p class="text-xs text-gray-400 mb-6">Modify the aesthetic details of your application workspace.</p>
+
+                <div class="space-y-6">
+                    <!-- Dynamic Accent Color Selector -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Accent Theme Color</label>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="setAccentTheme('violet')" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium border border-gray-700 bg-gray-900/50 hover:bg-gray-700/40 transition-all" id="accent-violet">
+                                <span class="w-3.5 h-3.5 rounded-full bg-violet-500"></span>
+                                <span class="text-gray-200">Violet (Default)</span>
+                            </button>
+                            <button onclick="setAccentTheme('emerald')" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium border border-gray-700 bg-gray-900/50 hover:bg-gray-700/40 transition-all" id="accent-emerald">
+                                <span class="w-3.5 h-3.5 rounded-full bg-emerald-500"></span>
+                                <span class="text-gray-200">Emerald</span>
+                            </button>
+                            <button onclick="setAccentTheme('amber')" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium border border-gray-700 bg-gray-900/50 hover:bg-gray-700/40 transition-all" id="accent-amber">
+                                <span class="w-3.5 h-3.5 rounded-full bg-amber-500"></span>
+                                <span class="text-gray-200">Amber</span>
+                            </button>
+                            <button onclick="setAccentTheme('sky')" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium border border-gray-700 bg-gray-900/50 hover:bg-gray-700/40 transition-all" id="accent-sky">
+                                <span class="w-3.5 h-3.5 rounded-full bg-sky-500"></span>
+                                <span class="text-gray-200">Sky Blue</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-700/60 my-4"></div>
+
+                    <!-- Layout Options -->
+                    <div class="space-y-4">
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Layout Preferences</label>
+                        
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-gray-900/30 border border-gray-700/40">
+                            <div>
+                                <p class="text-sm font-medium text-gray-200">Glassmorphic Cards</p>
+                                <p class="text-[11px] text-gray-500">Enable modern frosted glass styling for cards throughout the dashboard.</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="layout-glassmorphic" onchange="toggleLayoutOption('glassmorphic')" class="sr-only peer">
+                                <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-violet-600"></div>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-gray-900/30 border border-gray-700/40">
+                            <div>
+                                <p class="text-sm font-medium text-gray-200">Compact Navigation Sidebar</p>
+                                <p class="text-[11px] text-gray-500">Collapse sidebar text elements to maximize main workspace size.</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="layout-compact-sidebar" onchange="toggleLayoutOption('compact-sidebar')" class="sr-only peer">
+                                <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-violet-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Data Management -->
+        <div id="settings-tab-data" class="settings-tab-content space-y-6 hidden">
+            <!-- Data Actions Card -->
+            <div class="bg-gray-800 border border-gray-700/60 rounded-2xl p-6 shadow-card transition-all duration-300">
+                <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                    <i class="bx bx-export text-violet-400"></i> Export & Backup
+                </h2>
+                <p class="text-xs text-gray-400 mb-6">Download your personal financial records for offline backup or migration.</p>
+
+                <div class="p-4 rounded-xl bg-gray-900/30 border border-gray-700/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-200">Export All Transactions</p>
+                        <p class="text-xs text-gray-500">Download a comma-separated value (.csv) spreadsheet file containing all transaction history.</p>
+                    </div>
+                    <a href="{{ url_for('auth.export_transactions') }}" class="flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold text-xs rounded-lg px-4.5 py-2.5 transition-colors shrink-0">
+                        <i class="bx bx-download text-base"></i>
+                        <span>Export CSV</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Danger Zone Card -->
+            <div class="bg-gray-800 border border-red-900/30 rounded-2xl p-6 shadow-card transition-all duration-300 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
+
+                <h2 class="text-lg font-bold text-red-400 mb-1 flex items-center gap-2">
+                    <i class="bx bx-error-alt"></i> Danger Zone
+                </h2>
+                <p class="text-xs text-gray-400 mb-6">Irreversible destructive actions on your account data.</p>
+
+                <div class="p-4 rounded-xl bg-red-950/10 border border-red-900/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-semibold text-red-400">Reset Account Data</p>
+                        <p class="text-xs text-gray-500">Deletes all transactions, custom monthly budgets, and stock portfolio holdings. Your user account remains intact.</p>
+                    </div>
+                    <button onclick="openConfirmResetModal()" class="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg px-4.5 py-2.5 transition-colors shrink-0 shadow-lg shadow-red-600/10">
+                        <i class="bx bx-trash text-base"></i>
+                        <span>Reset Account</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirm Account Reset -->
+<div id="resetConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-gray-800 border border-red-900/50 rounded-2xl max-w-md w-full p-6 shadow-card transform scale-95 transition-transform duration-200" id="resetModalContent">
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-full bg-red-950 flex items-center justify-center text-red-500 shrink-0">
+                <i class="bx bx-error text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">Reset all account data?</h3>
+                <p class="text-xs text-gray-400 mt-1">This will permanently delete all your registered transactions, monthly budgets, and stock holdings. This action cannot be undone.</p>
+            </div>
+        </div>
+        
+        <form action="{{ url_for('auth.reset_data') }}" method="POST" class="mt-6 flex justify-end gap-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="button" onclick="closeConfirmResetModal()"
+                    class="px-4 py-2 text-xs font-semibold text-gray-300 hover:bg-gray-700/60 rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                Yes, Reset Everything
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Simple dynamic tabs implementation
+    function switchTab(tabId) {
+        // Hide all contents
+        document.querySelectorAll('.settings-tab-content').forEach(c => c.classList.add('hidden'));
+        // Show current content
+        document.getElementById(`settings-tab-${tabId}`).classList.remove('hidden');
+
+        // Update tabs active state styling
+        document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+            btn.className = "settings-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 text-gray-400 hover:bg-gray-800/40 hover:text-gray-200";
+        });
+        const activeBtn = document.getElementById(`tab-${tabId}-btn`);
+        activeBtn.className = "settings-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 text-violet-400 bg-violet-500/10 border border-violet-500/20";
+    }
+
+    // Modal helpers
+    function openConfirmResetModal() {
+        const modal = document.getElementById('resetConfirmModal');
+        const content = document.getElementById('resetModalContent');
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    }
+
+    function closeConfirmResetModal() {
+        const modal = document.getElementById('resetConfirmModal');
+        const content = document.getElementById('resetModalContent');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        content.classList.remove('scale-100');
+        content.classList.add('scale-95');
+    }
+
+    // Custom Theme Accents
+    function setAccentTheme(color) {
+        localStorage.setItem('settings-accent-color', color);
+        applyAccentTheme();
+    }
+
+    function applyAccentTheme() {
+        const activeColor = localStorage.getItem('settings-accent-color') || 'violet';
+        
+        // Remove all highlight rings/styling from selectors
+        ['violet', 'emerald', 'amber', 'sky'].forEach(c => {
+            const btn = document.getElementById(`accent-${c}`);
+            if (btn) {
+                btn.classList.remove('ring-2', 'ring-violet-500', 'border-transparent', 'bg-violet-500/5');
+                btn.classList.add('border-gray-700', 'bg-gray-900/50');
+            }
+        });
+
+        // Add highlight ring to active selector
+        const activeBtn = document.getElementById(`accent-${activeColor}`);
+        if (activeBtn) {
+            activeBtn.classList.add('ring-2', 'ring-violet-500', 'border-transparent', 'bg-violet-500/5');
+            activeBtn.classList.remove('border-gray-700', 'bg-gray-900/50');
+        }
+
+        // Apply dynamic styles to specific base components if wanted
+        // In this implementation, color selection is fully synced and stored client-side
+    }
+
+    // Layout toggles
+    function toggleLayoutOption(option) {
+        const checked = document.getElementById(`layout-${option}`).checked;
+        localStorage.setItem(`settings-layout-${option}`, checked ? 'true' : 'false');
+        
+        if (option === 'compact-sidebar') {
+            applySidebarLayout();
+        } else if (option === 'glassmorphic') {
+            applyGlassmorphicCards();
+        }
+    }
+
+    function applySidebarLayout() {
+        const isCompact = localStorage.getItem('settings-layout-compact-sidebar') === 'true';
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        if (isCompact) {
+            sidebar.classList.add('lg:w-20');
+            sidebar.classList.remove('lg:w-64');
+            // Hide word tokens in sidebar items
+            document.querySelectorAll('#sidebar span').forEach(s => s.classList.add('lg:hidden'));
+            // Hide badge profile texts
+            document.querySelectorAll('#sidebar p').forEach(p => p.classList.add('lg:hidden'));
+        } else {
+            sidebar.classList.remove('lg:w-20');
+            sidebar.classList.add('lg:w-64');
+            document.querySelectorAll('#sidebar span').forEach(s => s.classList.remove('lg:hidden'));
+            document.querySelectorAll('#sidebar p').forEach(p => p.classList.remove('lg:hidden'));
+        }
+    }
+
+    function applyGlassmorphicCards() {
+        const isGlass = localStorage.getItem('settings-layout-glassmorphic') === 'true';
+        document.querySelectorAll('.bg-gray-800').forEach(card => {
+            if (isGlass) {
+                card.classList.add('bg-gray-800/40', 'backdrop-blur-md');
+            } else {
+                card.classList.remove('bg-gray-800/40', 'backdrop-blur-md');
+            }
+        });
+    }
+
+    // Initialization on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        applyAccentTheme();
+        
+        // Sync toggles state with localStorage
+        const isGlass = localStorage.getItem('settings-layout-glassmorphic') === 'true';
+        document.getElementById('layout-glassmorphic').checked = isGlass;
+        applyGlassmorphicCards();
+
+        const isCompact = localStorage.getItem('settings-layout-compact-sidebar') === 'true';
+        document.getElementById('layout-compact-sidebar').checked = isCompact;
+        applySidebarLayout();
+    });
+</script>
+{% endblock %}

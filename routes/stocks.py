@@ -175,8 +175,7 @@ def api_stock_history(ticker):
             
         try:
             if currency != current_user.base_currency:
-                pair = f"{currency}{current_user.base_currency}=X"
-                rate, _ = get_cached_rate(pair, db.session)
+                rate = convert_currency(1.0, currency, current_user.base_currency, db.session)
                 prices = [round(p * rate, 2) for p in prices]
                 currency = current_user.base_currency
             else:

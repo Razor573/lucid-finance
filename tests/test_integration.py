@@ -25,6 +25,10 @@ class MockTicker:
             self.fast_info = MockFastInfo(0.78, 'GBP')
         elif self.ticker == 'GBPUSD=X':
             self.fast_info = MockFastInfo(1.28, 'USD')
+        elif self.ticker == 'EURUSD=X':
+            self.fast_info = MockFastInfo(1.09, 'USD')
+        elif self.ticker == 'USDEUR=X':
+            self.fast_info = MockFastInfo(0.92, 'EUR')
         elif self.ticker == 'INVALIDXYZ':
             self.fast_info = MockFastInfo(None, 'USD')
         else:
@@ -212,3 +216,132 @@ def test_full_user_workflow(client, db):
         logout_response = client.post('/logout', follow_redirects=True)
         assert logout_response.status_code == 200
         assert b"You have been logged out successfully." in logout_response.data
+
+def test_settings_and_currency_conversion(client, db):
+    with patch("yfinance.Ticker", side_effect=MockTicker):
+        # register & login a new user
+        client.post('/register', data={
+            'username': 'currencyuser',
+            'email': 'currency@finance.com',
+            'password': 'password123',
+            'confirm_password': 'password123',
+            'base_currency': 'GBP'
+        }, follow_redirects=True)
+        
+        client.post('/login', data={
+            'email': 'currency@finance.com',
+            'password': 'password123'
+        }, follow_redirects=True)
+
+        # 1. Verify we can access the settings page and change base_currency to USD
+        settings_get = client.get('/settings')
+        assert settings_get.status_code == 200
+        assert b"User Profile" in settings_get.data
+
+        settings_post = client.post('/settings', data={
+            'username': 'currencyuser',
+            'email': 'currency@finance.com',
+            'base_currency': 'USD'
+        }, follow_redirects=True)
+        assert settings_post.status_code == 200
+        assert b"Your settings have been updated." in settings_post.data
+
+        user = User.query.filter_by(username='currencyuser').first()
+        assert user.base_currency == 'USD'
+
+        # 2. Add some transactions in different currencies
+        # Base is USD.
+        # Add income: $100.00 USD
+        client.post('/transactions/add', data={
+            'date': date.today().strftime('%Y-%m-%d'),
+            'amount': 100.00,
+            'description': 'USD Income',
+            'category': 'Salary',
+            'type': 'income',
+            'currency': 'USD',
+            'notes': ''
+        }, follow_redirects=True)
+
+        # Add expense: £50.00 GBP (Static rate USD->GBP is 0.78, GBP->USD is 1.28)
+        # £50 GBP should convert to 50 * 1.28 = $64.00 USD
+        client.post('/transactions/add', data={
+            'date': date.today().strftime('%Y-%m-%d'),
+            'amount': 50.00,
+            'description': 'GBP Expense',
+            'category': 'Groceries',
+            'type': 'expense',
+            'currency': 'GBP',
+            'notes': ''
+        }, follow_redirects=True)
+
+        # Add expense: €100.00 EUR (Static rate EUR->USD is 1.09)
+        # €100 EUR should convert to 100 * 1.09 = $109.00 USD
+        client.post('/transactions/add', data={
+            'date': date.today().strftime('%Y-%m-%d'),
+            'amount': 100.00,
+            'description': 'EUR Expense',
+            'category': 'Bills',
+            'type': 'expense',
+            'currency': 'EUR',
+            'notes': ''
+        }, follow_redirects=True)
+
+        # 3. Verify Dashboard calculations
+        # total_income = 100.00 USD
+        # total_expenses = 64.00 (GBP) + 109.00 (EUR) = 173.00 USD
+        dashboard = client.get('/dashboard')
+        assert dashboard.status_code == 200
+        assert b"100" in dashboard.data
+        assert b"173" in dashboard.data
+
+        # 4. Verify API spending-by-category returns correct base currency sums
+        spending_resp = client.get('/api/spending-by-category')
+        assert spending_resp.status_code == 200
+        spending_data = json.loads(spending_resp.data.decode('utf-8'))
+        assert spending_data['currency'] == 'USD'
+        assert 'Groceries' in spending_data['labels']
+        assert 64.0 in spending_data['data']
+        assert 109.0 in spending_data['data']
+
+        # 5. Verify API monthly-trend returns correct trend data
+        trend_resp = client.get('/api/monthly-trend')
+        assert trend_resp.status_code == 200
+        trend_data = json.loads(trend_resp.data.decode('utf-8'))
+        assert trend_data['currency'] == 'USD'
+        assert trend_data['income'][-1] == 100.0
+        assert trend_data['expenses'][-1] == 173.0
+
+        # 6. Verify transactions page renders converted and original amounts
+        tx_page = client.get('/transactions/')
+        assert tx_page.status_code == 200
+        assert b"$64.00" in tx_page.data
+        assert b"\xc2\xa350.00" in tx_page.data  # GBP symbol and amount
+
+        # 7. Verify stock history converted successfully using convert_currency
+        # VOD.L is in GBp, converted first to GBP (divided by 100), then converted to USD (base)
+        history_resp = client.get('/stocks/api/history/VOD.L')
+        assert history_resp.status_code == 200
+        history_data = json.loads(history_resp.data.decode('utf-8'))
+        assert history_data['currency'] == 'USD'
+        # Original price for first day is 100, which in GBp is 1 GBP.
+        # converted to USD using GBP->USD rate (1.28) is 1.28
+        assert history_data['prices'][0] == 1.28
+
+        # 8. Test CSV Export of transactions
+        export_resp = client.get('/settings/export/transactions')
+        assert export_resp.status_code == 200
+        assert export_resp.mimetype == 'text/csv'
+        assert b"Date,Amount,Description,Category,Type,Currency,Notes" in export_resp.data
+        assert b"USD Income" in export_resp.data
+        assert b"GBP Expense" in export_resp.data
+
+        # 9. Test Reset of all data
+        reset_resp = client.post('/settings/reset', follow_redirects=True)
+        assert reset_resp.status_code == 200
+        assert b"All account data has been successfully cleared." in reset_resp.data
+        
+        # Verify db counts for user are 0
+        assert Transaction.query.filter_by(user_id=user.id).count() == 0
+        assert Budget.query.filter_by(user_id=user.id).count() == 0
+        assert StockHolding.query.filter_by(user_id=user.id).count() == 0
+

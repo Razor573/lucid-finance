@@ -8,6 +8,7 @@ from datetime import datetime
 from models import db, Transaction
 from forms import TransactionForm, CSVUploadForm
 from utils.csv_parser import scan_csv_headers, parse_mapped_csv
+from utils.stock_fetcher import convert_currency
 from utils.rate_limiter import rate_limit
 
 transactions_bp = Blueprint('transactions', __name__, url_prefix='/transactions')
@@ -44,7 +45,9 @@ def view_transactions():
         categories=categories,
         search=search,
         selected_category=cat_filter,
-        base_currency=current_user.base_currency
+        base_currency=current_user.base_currency,
+        convert_currency=convert_currency,
+        db_session=db.session
     )
 
 @transactions_bp.route('/add', methods=['POST'])

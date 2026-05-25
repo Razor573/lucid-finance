@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from models import db, Transaction, Budget
 from forms import BudgetForm
+from utils.stock_fetcher import convert_currency
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -38,8 +39,14 @@ def view_dashboard():
         Transaction.date <= today
     ).all()
     
-    total_income = sum(float(t.amount) for t in txs if t.type == 'income')
-    total_expenses = sum(float(t.amount) for t in txs if t.type == 'expense')
+    total_income = sum(
+        convert_currency(float(t.amount), t.currency, current_user.base_currency, db.session)
+        for t in txs if t.type == 'income'
+    )
+    total_expenses = sum(
+        convert_currency(float(t.amount), t.currency, current_user.base_currency, db.session)
+        for t in txs if t.type == 'expense'
+    )
     net_savings = total_income - total_expenses
     
     savings_rate = 0.0
@@ -50,7 +57,10 @@ def view_dashboard():
     b_stats = []
     
     for b in budgets:
-        spent = sum(float(t.amount) for t in txs if t.type == 'expense' and t.category == b.category)
+        spent = sum(
+            convert_currency(float(t.amount), t.currency, current_user.base_currency, db.session)
+            for t in txs if t.type == 'expense' and t.category == b.category
+        )
         limit = float(b.monthly_limit)
         is_over = spent > limit
         if is_over:
@@ -120,7 +130,8 @@ def api_spending_by_category():
     
     cat_sums = {}
     for t in txs:
-        cat_sums[t.category] = cat_sums.get(t.category, 0.0) + float(t.amount)
+        converted_amt = convert_currency(float(t.amount), t.currency, current_user.base_currency, db.session)
+        cat_sums[t.category] = cat_sums.get(t.category, 0.0) + converted_amt
         
     labels = list(cat_sums.keys())
     data = [round(cat_sums[k], 2) for k in labels]
@@ -173,10 +184,11 @@ def api_monthly_trend():
     for t in txs:
         key = (t.date.year, t.date.month)
         if key in buckets:
+            converted_amt = convert_currency(float(t.amount), t.currency, current_user.base_currency, db.session)
             if t.type == 'income':
-                buckets[key]['income'] += float(t.amount)
+                buckets[key]['income'] += converted_amt
             elif t.type == 'expense':
-                buckets[key]['expense'] += float(t.amount)
+                buckets[key]['expense'] += converted_amt
                 
     month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     
@@ -208,7 +220,10 @@ def api_budget_status():
     
     b_list = []
     for b in budgets:
-        spent = sum(float(t.amount) for t in txs if t.category == b.category)
+        spent = sum(
+            convert_currency(float(t.amount), t.currency, current_user.base_currency, db.session)
+            for t in txs if t.category == b.category
+        )
         limit = float(b.monthly_limit)
         b_list.append({
             'category': b.category,
